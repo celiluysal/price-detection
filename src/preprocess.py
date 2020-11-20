@@ -156,11 +156,11 @@ if __name__ == '__main__':
     print(type(batch_mask_tensor))
     print(batch_mask_tensor.shape)  
 
-    print(batch_mask_tensor[0])
+    # print(batch_mask_tensor[0])
 
-    image_list = decode_and_convert_image(batch_mask_tensor,2)
-    img = image_list[0]
-    print(type(img))
-    print(img.shape)
-    plt.imshow(img, cmap="gray")
-    plt.show()
+    # image_list = decode_and_convert_image(batch_mask_tensor,2)
+    # img = image_list[0]
+    # print(type(img))
+    # print(img.shape)
+    # plt.imshow(img, cmap="gray")
+    # plt.show()

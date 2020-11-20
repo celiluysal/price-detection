@@ -53,7 +53,6 @@ def write_mask_on_image():
         mask_image = image.copy()
         mask_ind = mask == 255
         mask_image[mask_ind, :] = (0, 0, 255)
-        opac_image = (image/2 + mask_image/2).astype(np.uint8)
         
         cv2.imwrite(join(IMAGE_OUT_DIR, mask_file_name), mask_image)
         if False:
@@ -73,11 +72,10 @@ def write_mask_on_image2(mask_list, image_file_names, shape, save_file_name):
         
         mask_image = image.copy()
         mask_ind = mask == 255
-        mask_image[mask_ind, :] = (102, 204, 102)
-        opac_image = (image/2 + mask_image/2).astype(np.uint8)
+        mask_image[mask_ind, :] = (0, 0, 255)
 
         image_name = image_path.split('/')[-1].split('.')[0]
-        cv2.imwrite(join(save_file_name, image_name+".png"), opac_image)
+        cv2.imwrite(join(save_file_name, image_name+".png"), mask_image)
 
 
 if __name__ == '__main__':
