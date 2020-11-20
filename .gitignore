@@ -1,4 +1,9 @@
-data
+# data
+*.png
+*.jpg
+*.jpeg
+*.json
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
