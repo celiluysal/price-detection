@@ -14,11 +14,11 @@ import torch.optim as optim
 valid_size = 0.3
 test_size  = 0.1
 batch_size = 8
-epochs = 20
+epochs = 10
 cuda = True
 augmentation = False
 test_predict = True
-predict_save_file_name = "test3"
+predict_save_file_name = "test2"
 model_file_name = predict_save_file_name
 input_shape = (224, 224)
 n_classes = 2
@@ -91,7 +91,6 @@ def train():
             batch_input_path_list = train_input_path_list[batch_size*ind:batch_size*(ind+1)]
             batch_label_path_list = train_label_path_list[batch_size*ind:batch_size*(ind+1)]
             
-            # batch_input = tensorize_image(batch_input_path_list, input_shape, cuda, epoch%2==0 if augmentation else False)
             batch_input = tensorize_image(batch_input_path_list, input_shape, cuda, augmentation)
             batch_label = tensorize_mask(batch_label_path_list, input_shape, n_classes, cuda)
 
@@ -130,43 +129,12 @@ def train():
     graph_name = predict_save_file_name
     draw_loss_graph(epochs, norm_run_loss_list, norm_val_loss_list, graph_name)
 
-def test(_model:UNet):    
-    if test_predict:
-        torch.cuda.empty_cache()
-        predict_mask_list = []
-        for test_input_path, test_label_path in tqdm.tqdm(zip(test_input_path_list, test_label_path_list)):
-            batch_input = tensorize_image([test_input_path], input_shape, cuda)
-            # batch_label = tensorize_mask([test_label_path], input_shape, n_classes, cuda)
-                    
-            outputs = _model(batch_input)
-
-            label = outputs > 0.5
-            decoded_list = decode_and_convert_image(label, n_class=2)
-            mask = decoded_list[0]
-            predict_mask_list.append(mask)
-                    
-            write_mask_on_image2(predict_mask_list, test_input_path_list, input_shape, predict_save_file_name)
-
 def save_model(model, model_name):
     if not os.path.exists(MODEL_DIR):
         os.mkdir(MODEL_DIR)
     model_name += ".pt"
     torch.save(model,join(MODEL_DIR, model_name))
 
-def load_model(model_dir):
-    loaded_model = torch.load(model_dir)
-    loaded_model.eval()
-    return loaded_model
-
 if __name__ == "__main__":
     train()
-    save_model(model, model_file_name)
-    test(model)
-    
-    print("test is done. Press any key for load and test model")
-    input()
-
-    predict_save_file_name += "with_load"
-
-    loaded_model = load_model(join(MODEL_DIR, model_file_name + ".pt"))
-    test(loaded_model)
+    save_model(model, model_file_name)    
