@@ -31,5 +31,5 @@ for json_name in tqdm.tqdm(json_list):
             start_point = points[0]
             end_point = points[1]
     
-            mask = cv2.rectangle(mask, start_point, end_point, 255, 30) 
+            mask = cv2.rectangle(mask, start_point, end_point, 255, cv2.FILLED) 
     cv2.imwrite(mask_path, mask.astype(np.uint8))
