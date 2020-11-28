@@ -1,7 +1,18 @@
 import matplotlib.pyplot as plt
 import os
 from os.path import join
+from datetime import date
+from datetime import datetime
 
+def time_stamp():
+    today = date.today()
+    d1 = today.strftime("%d/%m/%Y")
+
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
+
+    print(d1,current_time)
+    return now
 
 def draw_loss_graph(epoch_size, run_loss_list, val_loss_list, name):
     save_file_name = "../data/graphs/" 

@@ -1,7 +1,6 @@
 from unet import UNet
-from mask_on_image import write_mask_on_image2
 from preprocess import tensorize_image,tensorize_mask, image_mask_check, decode_and_convert_image
-from data_utils import draw_loss_graph, norm
+from data_utils import draw_loss_graph, norm, time_stamp
 
 from os.path import join
 import os, glob, tqdm, cv2, torch
@@ -14,11 +13,10 @@ import torch.optim as optim
 valid_size = 0.3
 test_size  = 0.1
 batch_size = 8
-epochs = 10
+epochs = 20
 cuda = True
-augmentation = False
-test_predict = True
-predict_save_file_name = "test2"
+augmentation = True
+predict_save_file_name = "test5"
 model_file_name = predict_save_file_name
 input_shape = (224, 224)
 n_classes = 2
@@ -136,5 +134,10 @@ def save_model(model, model_name):
     torch.save(model,join(MODEL_DIR, model_name))
 
 if __name__ == "__main__":
+    start = time_stamp()
+    
     train()
-    save_model(model, model_file_name)    
+    save_model(model, model_file_name)
+
+    end = time_stamp()
+    print("training duration: ", end - start)    

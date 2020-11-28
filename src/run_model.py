@@ -2,16 +2,16 @@ from unet import UNet
 import os, glob, torch, tqdm, cv2
 from os.path import join
 from preprocess import tensorize_image, decode_and_convert_image
-# from mask_on_image import write_mask_on_image2, crop_prize, write_mask_bbox_on_image
+from data_utils import time_stamp
 import numpy as np 
 from PIL import Image
 
 # PARAMETERS
 cuda = True
 test_size  = 0.1
-model_file_name = "test2"
-predict_save_file_name = model_file_name + "_predict"
-cropped_save_file_name = model_file_name + "_cropped"
+model_file_name = "test5"
+predict_save_file_name = model_file_name + "_predict2"
+cropped_save_file_name = model_file_name + "_cropped2"
 
 input_shape = (224, 224)
 n_classes = 2
@@ -20,16 +20,30 @@ SRC_DIR = os.getcwd()
 ROOT_DIR = os.path.join(SRC_DIR, '..')
 DATA_DIR = os.path.join(ROOT_DIR, 'data')
 MODEL_DIR = os.path.join(DATA_DIR, 'models')
-IMAGE_DIR = os.path.join(DATA_DIR, 'model_input_images')
+INPUT_IMAGE_DIR = os.path.join(DATA_DIR, 'model_input_images')
+TEST_IMAGE_DIR = os.path.join(DATA_DIR, 'images')
+
 
 MODEL_OUT = os.path.join(DATA_DIR, 'model_outputs')
 if not os.path.exists(MODEL_OUT):
     os.mkdir(MODEL_OUT)
 
-image_path_list = glob.glob(os.path.join(IMAGE_DIR, '*'))
-image_path_list.sort()
 
 
+
+
+def get_input_path_list():
+    image_path_list = glob.glob(os.path.join(INPUT_IMAGE_DIR, '*'))
+    image_path_list.sort()
+    return image_path_list
+
+def get_test_path_list():
+    image_path_list = glob.glob(os.path.join(TEST_IMAGE_DIR, '*'))
+    image_path_list.sort()
+    indices = np.random.permutation(len(image_path_list))
+    test_ind  = int(len(indices) * test_size)
+    test_input_path_list = image_path_list[:test_ind]
+    return test_input_path_list
 
 def load_model(model_dir):
     loaded_model = torch.load(model_dir)
@@ -121,5 +135,12 @@ def crop_price(mask_list, image_file_names, shape):
 
 
 if __name__ == "__main__":
+    start = time_stamp()
+
     loaded_model = load_model(join(MODEL_DIR, model_file_name + ".pt"))
+    # image_path_list = get_test_path_list()
+    image_path_list = get_input_path_list()
     test(loaded_model, image_path_list)
+
+    end = time_stamp()
+    print("prediction duration: ", end - start) 
