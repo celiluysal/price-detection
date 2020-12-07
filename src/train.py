@@ -16,7 +16,7 @@ batch_size = 8
 epochs = 20
 cuda = True
 augmentation = True
-predict_save_file_name = "test5"
+predict_save_file_name = "test8"
 model_file_name = predict_save_file_name
 input_shape = (224, 224)
 n_classes = 2
@@ -131,7 +131,7 @@ def save_model(model, model_name):
     if not os.path.exists(MODEL_DIR):
         os.mkdir(MODEL_DIR)
     model_name += ".pt"
-    torch.save(model,join(MODEL_DIR, model_name))
+    torch.save(model.state_dict(),join(MODEL_DIR, model_name))
 
 if __name__ == "__main__":
     start = time_stamp()

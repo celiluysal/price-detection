@@ -1,36 +1,30 @@
 from unet import UNet
-import os, glob, torch, tqdm, cv2
+import os, glob, torch, tqdm, cv2, copy
 from os.path import join
 from preprocess import tensorize_image, decode_and_convert_image
 from data_utils import time_stamp
 import numpy as np 
-from PIL import Image
 
 # PARAMETERS
-cuda = True
+cuda = False
 test_size  = 0.1
-model_file_name = "test5"
-predict_save_file_name = model_file_name + "_predict2"
-cropped_save_file_name = model_file_name + "_cropped2"
-
 input_shape = (224, 224)
 n_classes = 2
 
+# DIRECTORIES
+model_file_name = "test8"
+predict_save_file_name = model_file_name + "_predict"
+cropped_save_file_name = model_file_name + "_cropped"
 SRC_DIR = os.getcwd()
 ROOT_DIR = os.path.join(SRC_DIR, '..')
 DATA_DIR = os.path.join(ROOT_DIR, 'data')
 MODEL_DIR = os.path.join(DATA_DIR, 'models')
 INPUT_IMAGE_DIR = os.path.join(DATA_DIR, 'model_input_images')
 TEST_IMAGE_DIR = os.path.join(DATA_DIR, 'images')
-
-
 MODEL_OUT = os.path.join(DATA_DIR, 'model_outputs')
+
 if not os.path.exists(MODEL_OUT):
     os.mkdir(MODEL_OUT)
-
-
-
-
 
 def get_input_path_list():
     image_path_list = glob.glob(os.path.join(INPUT_IMAGE_DIR, '*'))
@@ -46,10 +40,16 @@ def get_test_path_list():
     return test_input_path_list
 
 def load_model(model_dir):
-    loaded_model = torch.load(model_dir)
-    loaded_model.eval()
-    loaded_model = loaded_model.cuda()
-    return loaded_model
+    model = UNet(n_channels=3, n_classes=2, bilinear=True)
+
+    if cuda:
+        model = model.cuda()
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
+    
+    model.load_state_dict(copy.deepcopy(torch.load(model_dir,device)))
+    return model
 
 def test(model, images):
     predict_mask_list = list()
