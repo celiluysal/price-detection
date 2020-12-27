@@ -15,6 +15,9 @@ n_classes = 2
 model_file_name = "test8"
 predict_save_file_name = model_file_name + "_predict"
 cropped_save_file_name = model_file_name + "_cropped"
+
+model_Dir = "..\\data\\models\\" + model_file_name + ".pt"
+
 SRC_DIR = os.getcwd()
 ROOT_DIR = os.path.join(SRC_DIR, '..')
 DATA_DIR = os.path.join(ROOT_DIR, 'data')
@@ -55,6 +58,9 @@ def test(model, images):
     predict_mask_list = list()
     for image in tqdm.tqdm(images):
         batch_input = tensorize_image([image], input_shape, cuda)
+        orj_image = cv2.imread(image)
+        print(orj_image.shape[0], orj_image.shape[1])
+        
         output = model(batch_input)
 
         label = output > 0.5
@@ -64,8 +70,8 @@ def test(model, images):
 
         predict_mask_list.append(mask)
 
-    write_mask_on_image(predict_mask_list, images, (1024,768))
-    crop_price(predict_mask_list, images, (1024,768))
+    write_mask_on_image(predict_mask_list, images, (orj_image.shape[1], orj_image.shape[0]))
+    crop_price(predict_mask_list, images, (orj_image.shape[1], orj_image.shape[0]))
 
 
 def write_mask_on_image(mask_list, image_file_names, shape):
@@ -91,8 +97,9 @@ def write_mask_on_image(mask_list, image_file_names, shape):
         x,y,w,h = cv2.boundingRect(selected_mask)
         cv2.rectangle(opac_image, (x, y), (x + w, y + h), (0,0,255), 4)
 
-        image_name = image_file_name.split('/')[-1].split('.')[0]
-        cv2.imwrite(join(save_file_name, image_name+ "_predict" + ".png"), opac_image)
+        image_name = (image_file_name).split('\\')[-1].split('.')[0]
+        saving_file = join(save_file_name, image_name+ "_predict" + ".png")
+        cv2.imwrite(saving_file, opac_image)
 
 def find_biggest_area(mask):
     thresh = mask.copy()
@@ -126,7 +133,7 @@ def crop_price(mask_list, image_file_names, shape):
         x,y,w,h = cv2.boundingRect(selected_mask)
         crop_image = image[y:y+h, x:x+w]
 
-        image_name = image_file_name.split('/')[-1].split('.')[0]
+        image_name = image_file_name.split('\\')[-1].split('.')[0]
 
         if(w or h):
             cv2.imwrite(join(save_file_name, image_name + "_cropped" + ".png"), crop_image)
@@ -134,10 +141,9 @@ def crop_price(mask_list, image_file_names, shape):
             print(image_name, " is empty" , x,y,w,h)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":    
     start = time_stamp()
-
-    loaded_model = load_model(join(MODEL_DIR, model_file_name + ".pt"))
+    loaded_model = load_model(model_Dir)
     # image_path_list = get_test_path_list()
     image_path_list = get_input_path_list()
     test(loaded_model, image_path_list)
