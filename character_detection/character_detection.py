@@ -12,14 +12,14 @@ CURSOR_H_PERCENT = 0.25
 PADDING_V = 0.2
 PADDING_H = 0.3
 
-name = "7"
+# name = "7"
 
-INPUT_FILE = "input1"
-OUTPUT_FILE = "results\\result"+name
+# INPUT_FILE = "input1"
+# OUTPUT_FILE = "results\\result"+name
 
 
-if not os.path.exists(OUTPUT_FILE):
-    os.mkdir(OUTPUT_FILE)
+# if not os.path.exists(OUTPUT_FILE):
+#     os.mkdir(OUTPUT_FILE)
 
 def get_input_path_list():
     image_path_list = glob.glob(os.path.join(INPUT_FILE, '*'))
@@ -103,9 +103,7 @@ def find_nummbers(image):
     
     spc = int(height * SPACE_RATE / 1000)
     cursor_h = int(height*CURSOR_H_PERCENT)
-    
-    print("contours",len(contours))
-    
+        
     if contours:
         for i in range(len(contours)):
             x,y,w,h = cv2.boundingRect(contours[i])
@@ -147,26 +145,19 @@ def crop_numbers(image, rectangle_list):
         contour = clean_arraund_number(crop_image)
         img = add_padding(contour, PADDING_V, PADDING_H)
         number_image_list.append(img)
-                
-    # im_h_resize = hconcat_resize_min(number_image_list)
 
-    # return im_h_resize, number_image_list
     return number_image_list
 
 def add_padding(image, padding_v, padding_h):
     ht, wd = image.shape[0], image.shape[1]
 
-    # create new image of desired size and color (blue) for padding
     ww = int(wd + wd * padding_h * 2)
     hh = int(ht + ht * padding_v * 2)
-    color = (255,0,0)
     result = np.zeros((hh,ww), dtype=np.uint8)
     
-    # compute center offset
     xx = (ww - wd) // 2
     yy = (hh - ht) // 2
     
-    # copy img image into center of result image
     result[yy:yy+ht, xx:xx+wd] = image
     return result
     
@@ -187,7 +178,6 @@ def clean_arraund_number(thresh):
     
     return thresh
 
-
 def check_boundary(width,height,rectangle):
     x1,y1,w,h = rectangle
     x2,y2 = x1+w, y1+h
@@ -204,24 +194,8 @@ def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
     return cv2.hconcat(im_list_resize)
 
 
-if  __name__ == "__main__":   
-    image = cv2.imread(INPUT_FILE+"\\"+ name +".jpeg")
-    number_image_list = get_numbers(image)
-   # save_images(number_image_list, OUTPUT_FILE)
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
+# if  __name__ == "__main__":   
+#     image = cv2.imread(INPUT_FILE+"\\"+ name +".jpeg")
+#     number_image_list = get_numbers(image)
+#    # save_images(number_image_list, OUTPUT_FILE)
    
