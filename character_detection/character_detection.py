@@ -1,11 +1,25 @@
-import glob, os, cv2, imutils
+import glob, os, cv2
 from os.path import join
 import numpy as np
 
 
-INPUT_FILE = "input"
-OUTPUT_FILE = "output"
+#PARAMETERS
+IMG_PROCESS_HEIGHT = 2000
+IMG_CHRACTER_HEIGHT = 1000
+SPACE_RATE = 5
+IGNORE_CH_PERCENT = 40
+CURSOR_H_PERCENT = 0.25
+PADDING_V = 0.2
+PADDING_H = 0.3
 
+name = "7"
+
+INPUT_FILE = "input1"
+OUTPUT_FILE = "results\\result"+name
+
+
+if not os.path.exists(OUTPUT_FILE):
+    os.mkdir(OUTPUT_FILE)
 
 def get_input_path_list():
     image_path_list = glob.glob(os.path.join(INPUT_FILE, '*'))
@@ -25,31 +39,47 @@ def save_all(images, path_list):
         saving_file = join(OUTPUT_FILE, image_name + ".jpeg")
         cv2.imwrite(saving_file, image) 
     
-def resize(image, max_height=3000):
-    height, width = image.shape[0], image.shape[1]
-    rate = height / max_height
-    img = cv2.resize(image,(int(width/rate), int(height/rate)))
-    return img
-
 def run():
     path_list = get_input_path_list()
     images = read_all(path_list)
         
     result_images = []
     for img in images:
-        img = resize(img)
+        img = resize(img, IMG_PROCESS_HEIGHT)
         # img = preprocess(img)
-        img, rectangle_list = find_nummbers(img)
+        # img, number_image_list = find_nummbers(img)
+        number_image_list = find_nummbers(img)
+        if number_image_list:
+            print("number_image_list",len(number_image_list))
+        else:
+            print("boş")
+            # for im in number_image_list:
+                # save_all(result_images, path_list) 
         
         result_images.append(img)
     
     save_all(result_images, path_list)  
     
+def save_images(image_list, file_name):
+    counter = 0
+    for img in image_list:
+        saving_file = file_name+ "\\"+str(counter)+ ".jpeg"
+        cv2.imwrite(saving_file ,img)
+        counter = counter + 1
     
+def get_numbers(image):
+    image = resize(image)
+    number_image_list = find_nummbers(image)
+    return number_image_list
+    
+def resize(image, max_height=3000):
+    height, width = image.shape[0], image.shape[1]
+    rate = height / max_height
+    img = cv2.resize(image,(int(width/rate), int(height/rate)))
+    return img
     
 def preprocess(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
     ret, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
     
     kernel = np.ones((10,10),np.uint8)
@@ -62,106 +92,39 @@ def preprocess(image):
     ret, thresh = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
     return thresh
-    # return opening
 
-def get_contour_precedence(contour, cols):
-    tolerance_factor = 500
-    origin = cv2.boundingRect(contour)
-    return ((origin[1] // tolerance_factor) * tolerance_factor) * cols + origin[0]
+def find_nummbers(image):
+    thresh = preprocess(image)
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    rectangle_list = []
+    number_image_list = []
+    height, width= image.shape[0], image.shape[1]
+    
+    spc = int(height * SPACE_RATE / 1000)
+    cursor_h = int(height*CURSOR_H_PERCENT)
+    
+    print("contours",len(contours))
+    
+    if contours:
+        for i in range(len(contours)):
+            x,y,w,h = cv2.boundingRect(contours[i])
+            x1, y1, x2, y2 = limit_edges(width, height,
+                                          x-spc, y-spc, x+w+spc, y+h+spc)
+            coords = [(x1, y1), (x2, y2)]
+            rectangle_list.append(coords)
+                 
+        rectangle_list = select_and_sort(cursor_h, rectangle_list)
+        number_image_list = crop_numbers(thresh,rectangle_list)
+    
+    return number_image_list
 
-def check_edges(w, h, x1, y1, x2, y2):
+def limit_edges(w, h, x1, y1, x2, y2):
     x1 = 0 if x1 < 0 else x1
     y1 = 0 if y1 < 0 else y1
     x2 = w if x2 > w else x2
     y2 = h if y2 > h else y2
     return x1, y1, x2, y2
-    
-
-
-def find_nummbers(image):
-    thresh = preprocess(image)
-    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    contours.sort(key=lambda x:get_contour_precedence(x, thresh.shape[1]))
-    
-    contour = np.zeros(image.shape, np.uint8)
-    contour = cv2.drawContours(contour, contours, -1, (255, 255, 255), 8)
-    output = gray = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
-    
-    rectangle_list = []
-    spc = 50
-    width, height= output.shape[1], output.shape[0]
-    cursor_h = int(height*0.25)
-    
-    for i in range(len(contours)):
-        selected = np.zeros(thresh.shape, np.uint8)
-        selected = cv2.drawContours(selected, contours[i], -1, 255, 8)
-        x,y,w,h = cv2.boundingRect(selected)
-        
-        
-        x1, y1, x2, y2 = check_edges(width, height,
-                                      x-spc, y-spc, x+w+spc, y+h+spc)
-        
-        # x1, y1, x2, y2 = x-spc, y-spc, x+w+spc, y+h+spc
-        coords = [(x1, y1), (x2, y2)]
-        rectangle_list.append(coords)
-        
-        
-        # cv2.rectangle(output, coords[0], coords[1], (0,0,255), 2)
-        # cv2.line(output,(0,cursor_h),(width,cursor_h),(255, 0, 0), 3)
-        # cv2.putText(output, str(i),
-        # (x1+5, y1+60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-        
-    rectangle_list = select_and_sort(cursor_h, rectangle_list)
-    crapped = crop_numbers(thresh,rectangle_list)
-    
-    counter = 0
-    for rectangle in rectangle_list:
-        cv2.rectangle(output, rectangle[0], rectangle[1], (0,0,255), 2)
-        cv2.line(output,(0,cursor_h),(width,cursor_h),(255, 0, 0), 3)
-        cv2.putText(output, str(counter),
-                    (rectangle[0][0]+5, rectangle[0][1]+60), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 4)
-        counter = counter+1
-    
-    
-
-    cv2.putText(output, "cnt: {}".format(len(contours)),
-        (5, output.shape[0]-10), 
-        cv2.FONT_HERSHEY_SIMPLEX, 3, (255, 0, 0), 2)
-
-    return crapped, rectangle_list
-
-def crop_numbers(image, rectangle_list):
-    # crop_image = image[y:y+h, x:x+w]
-    number_list = []
-    
-    
-    for rectangle in rectangle_list:
-        x1, y1 = rectangle[0]
-        x2, y2 = rectangle[1]
-        
-        crop_image = image[y1:y2, x1:x2]
-        crop_image = resize(crop_image)
-        number_list.append(crop_image)
-                
-    
-    im_h_resize = hconcat_resize_min(number_list)
-    # vertical = np.vstack((
-    #     image,
-    #     cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR),
-    #     cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR),
-    #     cv2.cvtColor(edged, cv2.COLOR_GRAY2BGR),
-    #     contour_image))
-    # return number_list
-    return im_h_resize
-
-def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
-    h_min = min(im.shape[0] for im in im_list)
-    im_list_resize = [cv2.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=interpolation)
-                      for im in im_list]
-    return cv2.hconcat(im_list_resize)
-
-
 
 def select_and_sort(cursor, rectangle_list):
     select_list = []
@@ -171,24 +134,80 @@ def select_and_sort(cursor, rectangle_list):
         if(y1<cursor and cursor<y2):
             select_list.append(rectangle)
     return sorted(select_list, key=lambda x: x[0][0])
+
+def crop_numbers(image, rectangle_list):
+    number_image_list = []
+    
+    for rectangle in rectangle_list:
+        x1, y1 = rectangle[0]
+        x2, y2 = rectangle[1]
+        
+        crop_image = image[y1:y2, x1:x2]
+        crop_image = resize(crop_image, IMG_CHRACTER_HEIGHT)
+        contour = clean_arraund_number(crop_image)
+        img = add_padding(contour, PADDING_V, PADDING_H)
+        number_image_list.append(img)
+                
+    # im_h_resize = hconcat_resize_min(number_image_list)
+
+    # return im_h_resize, number_image_list
+    return number_image_list
+
+def add_padding(image, padding_v, padding_h):
+    ht, wd = image.shape[0], image.shape[1]
+
+    # create new image of desired size and color (blue) for padding
+    ww = int(wd + wd * padding_h * 2)
+    hh = int(ht + ht * padding_v * 2)
+    color = (255,0,0)
+    result = np.zeros((hh,ww), dtype=np.uint8)
+    
+    # compute center offset
+    xx = (ww - wd) // 2
+    yy = (hh - ht) // 2
+    
+    # copy img image into center of result image
+    result[yy:yy+ht, xx:xx+wd] = image
+    return result
     
     
 
-def deneme(thresh):
-    num_labels, _, stats, centroids = cv2.connectedComponentsWithStats(thresh)
+def clean_arraund_number(thresh):
+    height,width=thresh.shape
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    for cnt in contours:
+        rectangle = cv2.boundingRect(cnt)
+        x,y,w,h = rectangle
+        cnt_area = w*h
+        image_area = width * height
+        area_percentence = cnt_area * 100 / image_area
 
-    for i in range(num_labels):
-        leftmost_x = stats[i, cv2.CC_STAT_LEFT]
-        topmost_y = stats[i, cv2.CC_STAT_TOP]
-        width = stats[i, cv2.CC_STAT_WIDTH]
-        height = stats[i, cv2.CC_STAT_HEIGHT]
-
-        # enclose all detected components in a blue rectangle
-        cv2.rectangle(thresh, (leftmost_x, topmost_y), (leftmost_x + width, topmost_y + height), (255, 0, 0), 2)
+        if (check_boundary(width,height,rectangle) and (area_percentence < IGNORE_CH_PERCENT)):
+            thresh = cv2.drawContours(thresh, [cnt], -1, 0, -1)
     
+    return thresh
+
+
+def check_boundary(width,height,rectangle):
+    x1,y1,w,h = rectangle
+    x2,y2 = x1+w, y1+h
+    if x1<=0 or y1<=0 or x2>=width-1 or y2>=height-1:
+        return True 
+    else: 
+        return False
+    
+
+def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
+    h_min = min(im.shape[0] for im in im_list)
+    im_list_resize = [cv2.resize(im, (int(im.shape[1] * h_min / im.shape[0]), h_min), interpolation=interpolation)
+                      for im in im_list]
+    return cv2.hconcat(im_list_resize)
+
 
 if  __name__ == "__main__":   
-   run()
+    image = cv2.imread(INPUT_FILE+"\\"+ name +".jpeg")
+    number_image_list = get_numbers(image)
+   # save_images(number_image_list, OUTPUT_FILE)
    
    
    
