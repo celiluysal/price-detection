@@ -2,24 +2,19 @@ import glob, os, cv2
 from os.path import join
 import numpy as np
 
-
 #PARAMETERS
 IMG_PROCESS_HEIGHT = 2000
 IMG_CHRACTER_HEIGHT = 1000
-SPACE_RATE = 5
-IGNORE_CH_PERCENT = 40
-CURSOR_H_PERCENT = 0.25
+IGNORE_CH_PERCENT = 0.4
+CURSOR_H_PERCENT = 0.30
+PADDING_FIND = 0
 PADDING_V = 0.2
 PADDING_H = 0.3
 
-# name = "7"
+name = "e2"
+INPUT_FILE = "i"
+OUTPUT_FILE = "results\\result"+name
 
-# INPUT_FILE = "input1"
-# OUTPUT_FILE = "results\\result"+name
-
-
-# if not os.path.exists(OUTPUT_FILE):
-#     os.mkdir(OUTPUT_FILE)
 
 def get_input_path_list():
     image_path_list = glob.glob(os.path.join(INPUT_FILE, '*'))
@@ -69,11 +64,11 @@ def save_images(image_list, file_name):
     
 def get_numbers(image):
     image = resize(image)
-    number_image_list = find_nummbers(image)
+    number_image_list = find_nummbers(image, PADDING_FIND)
     return number_image_list
     
 def resize(image, max_height=3000):
-    height, width = image.shape[0], image.shape[1]
+    height, width = image.shape[:2]
     rate = height / max_height
     img = cv2.resize(image,(int(width/rate), int(height/rate)))
     return img
@@ -93,22 +88,25 @@ def preprocess(image):
 
     return thresh
 
-def find_nummbers(image):
+def find_nummbers(image, padding):
     thresh = preprocess(image)
+
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     rectangle_list = []
     number_image_list = []
-    height, width= image.shape[0], image.shape[1]
-    
-    spc = int(height * SPACE_RATE / 1000)
+    height, width = image.shape[:2]
     cursor_h = int(height*CURSOR_H_PERCENT)
         
     if contours:
-        for i in range(len(contours)):
-            x,y,w,h = cv2.boundingRect(contours[i])
-            x1, y1, x2, y2 = limit_edges(width, height,
-                                          x-spc, y-spc, x+w+spc, y+h+spc)
+        for contour in contours:
+            x,y,w,h = cv2.boundingRect(contour)
+    
+            spc_v = int(h * padding)
+            spc_h = int(w * padding)
+            x1,y1,x2,y2 = x - spc_h, y - spc_v, x + w + spc_h, y + h + spc_v
+            x1,y1,x2,y2 = limit_edges(width, height, x1,y1,x2,y2)
+            
             coords = [(x1, y1), (x2, y2)]
             rectangle_list.append(coords)
                  
@@ -149,29 +147,29 @@ def crop_numbers(image, rectangle_list):
     return number_image_list
 
 def add_padding(image, padding_v, padding_h):
-    ht, wd = image.shape[0], image.shape[1]
+    height, width = image.shape[:2]
 
-    ww = int(wd + wd * padding_h * 2)
-    hh = int(ht + ht * padding_v * 2)
+    ww = int(width + width * padding_h * 2)
+    hh = int(height + height * padding_v * 2)
     result = np.zeros((hh,ww), dtype=np.uint8)
     
-    xx = (ww - wd) // 2
-    yy = (hh - ht) // 2
+    xx = (ww - width) // 2
+    yy = (hh - height) // 2
     
-    result[yy:yy+ht, xx:xx+wd] = image
+    result[yy:yy+height, xx:xx+width] = image
     return result
     
     
 
 def clean_arraund_number(thresh):
-    height,width=thresh.shape
+    height, width = image.shape[:2]
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     for cnt in contours:
         rectangle = cv2.boundingRect(cnt)
         x,y,w,h = rectangle
         cnt_area = w*h
         image_area = width * height
-        area_percentence = cnt_area * 100 / image_area
+        area_percentence = cnt_area / image_area
 
         if (check_boundary(width,height,rectangle) and (area_percentence < IGNORE_CH_PERCENT)):
             thresh = cv2.drawContours(thresh, [cnt], -1, 0, -1)
@@ -194,8 +192,10 @@ def hconcat_resize_min(im_list, interpolation=cv2.INTER_CUBIC):
     return cv2.hconcat(im_list_resize)
 
 
-# if  __name__ == "__main__":   
-#     image = cv2.imread(INPUT_FILE+"\\"+ name +".jpeg")
-#     number_image_list = get_numbers(image)
-#    # save_images(number_image_list, OUTPUT_FILE)
+if  __name__ == "__main__":   
+    image = cv2.imread(INPUT_FILE+"\\"+ name +".jpeg")
+    number_image_list = get_numbers(image)
+    if not os.path.exists(OUTPUT_FILE):
+        os.mkdir(OUTPUT_FILE)
+    save_images(number_image_list, OUTPUT_FILE)
    

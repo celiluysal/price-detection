@@ -1,9 +1,9 @@
 from unet import UNet
-from preprocess import tensorize_image,tensorize_mask, image_mask_check, decode_and_convert_image
+from preprocess import tensorize_image,tensorize_mask, image_mask_check
 from data_utils import draw_loss_graph, norm, time_stamp
 
 from os.path import join
-import os, glob, tqdm, cv2, torch
+import os, glob, tqdm, torch, copy
 import numpy as np
 import torch.nn as nn
 import torch.optim as optim
@@ -11,12 +11,12 @@ import torch.optim as optim
 
 ######### PARAMETERS ##########
 valid_size = 0.3
-test_size  = 0.1
+test_size  = 0.0
 batch_size = 8
-epochs = 20
+epochs = 10
 cuda = True
 augmentation = True
-predict_save_file_name = "test8"
+predict_save_file_name = "model_1.1"
 model_file_name = predict_save_file_name
 input_shape = (224, 224)
 n_classes = 2
@@ -132,10 +132,23 @@ def save_model(model, model_name):
         os.mkdir(MODEL_DIR)
     model_name += ".pt"
     torch.save(model.state_dict(),join(MODEL_DIR, model_name))
+    
+def load_model(model_dir):
+    model = UNet(n_channels=3, n_classes=2, bilinear=True)
+
+    if cuda:
+        model = model.cuda()
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
+    
+    model.load_state_dict(copy.deepcopy(torch.load(model_dir,device)))
+    return model
 
 if __name__ == "__main__":
     start = time_stamp()
     
+    model = load_model("..\\data\\models\\" + "model_1" + ".pt")
     train()
     save_model(model, model_file_name)
 

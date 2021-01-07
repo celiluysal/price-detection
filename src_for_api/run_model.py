@@ -3,14 +3,16 @@ import torch, cv2, copy
 import numpy as np 
 from torchvision import transforms as T
 from PIL import Image
+from PIL import ImageOps
 
 # PARAMETERS
 cuda = False
 input_shape = (224, 224)
 n_classes = 2
+PADDING = 0.05
 
 # DIRECTORIES
-model_file_name = "test8"
+model_file_name = "model_1"
 DATA_DIR = "..\\data"
 MODEL_DIR = DATA_DIR + "\\models\\" + model_file_name + ".pt"
 
@@ -31,6 +33,7 @@ def load_model(model_dir):
 def make_prediction(image):
     model = load_model(MODEL_DIR)    
     
+    image = ImageOps.exif_transpose(image)
     batch_input = tensorize_image(image, input_shape, cuda)
     output = model(batch_input)
     label = output > 0.5
@@ -46,7 +49,7 @@ def make_prediction(image):
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
     
-    cropped_image = crop_price(predict_mask, cv2_image)
+    cropped_image = crop_price(predict_mask, cv2_image, PADDING)
     
     # show_image = cv2.resize(cropped_image,(1024,768))
     # cv2.imshow("dvf",cropped_image)
@@ -84,18 +87,31 @@ def decode_and_convert_image(data, n_class):
 
     return decoded_data
 
-def crop_price(mask, image):
-    mask = cv2.resize(mask, (image.shape[1],image.shape[0]))
+def crop_price(mask, image, padding):
+    width, height = image.shape[1],image.shape[0]
+    mask = cv2.resize(mask, (width, height))
 
     selected_mask = find_biggest_area(mask)
     x,y,w,h = cv2.boundingRect(selected_mask)
-    crop_image = image[y:y+h, x:x+w]
+    
+    spc_v = int(h * padding)
+    spc_h = int(w * padding)
+    x1,y1,x2,y2 = x - spc_h, y - spc_v, x + w + spc_h, y + h + spc_v
+    x1,y1,x2,y2 = limit_edges(width, height, x1,y1,x2,y2)
+    
+    crop_image = image[y1:y2, x1:x2]
 
     if(w or h):
         return crop_image
     else:
-        print("image is empty" , x,y,w,h)
-        return 
+        return None
+    
+def limit_edges(w, h, x1, y1, x2, y2):
+    x1 = 0 if x1 < 0 else x1
+    y1 = 0 if y1 < 0 else y1
+    x2 = w if x2 > w else x2
+    y2 = h if y2 > h else y2
+    return x1, y1, x2, y2
 
 
 def mask_on_image(mask, image):
@@ -133,9 +149,19 @@ def find_biggest_area(mask):
     return thresh
 
 
-
-
-
 if __name__ == "__main__":    
-    make_prediction(Image.open("..\\data\\model_input_images\\e7.jpg"))
+    img = Image.open("..\\data\\model_input_images\\e.jpeg")
+    # img = ImageOps.exif_transpose(img)
+    # img.show()
+    
+    image = make_prediction(img)
+    cv2.imwrite("..\\data\\model_outputs\\test8_cropped\\e2.jpeg",image)
+    # cv2.imshow("fg",image)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+    
+    
+    
+    
+    
     

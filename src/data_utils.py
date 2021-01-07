@@ -15,7 +15,7 @@ def time_stamp():
     return now
 
 def draw_loss_graph(epoch_size, run_loss_list, val_loss_list, name):
-    save_file_name = "../data/graphs/" 
+    save_file_name = "..\\data\\graphs\\" 
     
     if not os.path.exists(save_file_name):
         os.mkdir(save_file_name)

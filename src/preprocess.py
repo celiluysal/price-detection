@@ -2,12 +2,12 @@ import numpy as np
 import cv2
 import torch
 import glob
-import matplotlib.pyplot as plt
 from torchvision import transforms as T
 from PIL import Image
+from PIL import ImageOps
 
-MASK_DIR = "../data/masks"
-IMG_DIR = "../data/images"
+MASK_DIR = "..\\data\\masks"
+IMG_DIR = "..\\data\\images"
 # MASK_DIR = "../data/test_masks"
 # IMG_DIR = "../data/test_images"
 
@@ -22,6 +22,7 @@ def tensorize_image(image_path, output_shape, cuda=False, augment=False):
 
     for file_name in image_path:
         image = Image.open(file_name)
+        image = ImageOps.exif_transpose(image)
         image = Transform(image)
 
         dataset.append(image)
@@ -116,13 +117,13 @@ def torchlike_data(data):
 
 def image_mask_check(image_path_list, mask_path_list):
     for image_path, mask_path in zip(image_path_list, mask_path_list):
-        image_name = image_path.split('/')[-1].split('.')[0]
-        mask_name  = mask_path.split('/')[-1].split('.')[0]
+        image_name = image_path.split('\\')[-1].split('.')[0]
+        mask_name  = mask_path.split('\\')[-1].split('.')[0]
         assert image_name == mask_name, "Image and mask name does not match {} - {}".format(image_name, mask_name)
 
 if __name__ == '__main__':
     
-    image_file_names = glob.glob(IMG_DIR + "/*")
+    image_file_names = glob.glob(IMG_DIR + "\\*")
     image_file_names.sort()
     batch_image_list = image_file_names[:1] #first n
     batch_image_tensor = tensorize_image(batch_image_list, (224,224), augment=False)
@@ -147,7 +148,7 @@ if __name__ == '__main__':
 
     print("------------")    
     
-    mask_file_names = glob.glob(MASK_DIR + "/*")
+    mask_file_names = glob.glob(MASK_DIR + "\\*")
     mask_file_names.sort()
     batch_mask_list = mask_file_names[:1] #first n
     batch_mask_tensor = tensorize_mask(batch_mask_list, (224,224), 2)

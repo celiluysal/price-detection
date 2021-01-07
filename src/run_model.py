@@ -7,14 +7,14 @@ import numpy as np
 
 # PARAMETERS
 cuda = False
-test_size  = 0.1
+test_size  = 0.01
 input_shape = (224, 224)
 n_classes = 2
 
 # DIRECTORIES
-model_file_name = "test8"
-predict_save_file_name = model_file_name + "_predict"
-cropped_save_file_name = model_file_name + "_cropped"
+model_file_name = "model_1.1"
+predict_save_file_name = model_file_name + "_predict_test_2"
+cropped_save_file_name = model_file_name + "_cropped_test_2"
 
 model_Dir = "..\\data\\models\\" + model_file_name + ".pt"
 
@@ -58,8 +58,6 @@ def test(model, images):
     predict_mask_list = list()
     for image in tqdm.tqdm(images):
         batch_input = tensorize_image([image], input_shape, cuda)
-        orj_image = cv2.imread(image)
-        print(orj_image.shape[0], orj_image.shape[1])
         
         output = model(batch_input)
 
@@ -70,11 +68,11 @@ def test(model, images):
 
         predict_mask_list.append(mask)
 
-    write_mask_on_image(predict_mask_list, images, (orj_image.shape[1], orj_image.shape[0]))
-    crop_price(predict_mask_list, images, (orj_image.shape[1], orj_image.shape[0]))
+    write_mask_on_image(predict_mask_list, images)
+    crop_price(predict_mask_list, images)
 
 
-def write_mask_on_image(mask_list, image_file_names, shape):
+def write_mask_on_image(mask_list, image_file_names):
     save_file_name = os.path.join(MODEL_OUT, predict_save_file_name)
     if not os.path.exists(save_file_name):
         os.mkdir(save_file_name)
@@ -82,8 +80,7 @@ def write_mask_on_image(mask_list, image_file_names, shape):
     for mask, image_file_name in zip(mask_list, image_file_names):
 
         image = cv2.imread(image_file_name).astype(np.uint8)
-        image = cv2.resize(image, shape)
-        mask = cv2.resize(mask, shape)
+        mask = cv2.resize(mask, (image.shape[1],image.shape[0]))
         x,y,w,h = cv2.boundingRect(mask)
 
         selected_mask = find_biggest_area(mask)
@@ -98,7 +95,7 @@ def write_mask_on_image(mask_list, image_file_names, shape):
         cv2.rectangle(opac_image, (x, y), (x + w, y + h), (0,0,255), 4)
 
         image_name = (image_file_name).split('\\')[-1].split('.')[0]
-        saving_file = join(save_file_name, image_name+ "_predict" + ".png")
+        saving_file = join(save_file_name, image_name+ "_predict" + ".jpeg")
         cv2.imwrite(saving_file, opac_image)
 
 def find_biggest_area(mask):
@@ -118,7 +115,7 @@ def find_biggest_area(mask):
                 cv2.drawContours(thresh, [c], -1, (0,255,0), -1)
     return thresh
 
-def crop_price(mask_list, image_file_names, shape):
+def crop_price(mask_list, image_file_names):
     save_file_name = os.path.join(MODEL_OUT, cropped_save_file_name)
     if not os.path.exists(save_file_name):
         os.mkdir(save_file_name)
@@ -126,9 +123,9 @@ def crop_price(mask_list, image_file_names, shape):
     for mask, image_file_name in zip(mask_list, image_file_names):
 
         image = cv2.imread(image_file_name).astype(np.uint8)
-        image = cv2.resize(image, shape)
-        mask = cv2.resize(mask, shape)
-
+        # image = cv2.resize(image, shape)
+        mask = cv2.resize(mask, (image.shape[1],image.shape[0]))
+        
         selected_mask = find_biggest_area(mask)
         x,y,w,h = cv2.boundingRect(selected_mask)
         crop_image = image[y:y+h, x:x+w]
@@ -136,7 +133,7 @@ def crop_price(mask_list, image_file_names, shape):
         image_name = image_file_name.split('\\')[-1].split('.')[0]
 
         if(w or h):
-            cv2.imwrite(join(save_file_name, image_name + "_cropped" + ".png"), crop_image)
+            cv2.imwrite(join(save_file_name, image_name + "_cropped" + ".jpeg"), crop_image)
         else:
             print(image_name, " is empty" , x,y,w,h)
 

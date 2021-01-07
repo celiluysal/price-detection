@@ -3,17 +3,17 @@ import numpy as np
 from os import listdir
 from os.path import isfile, join
 
-MASK_DIR  = '../data/masks'
-IMAGE_DIR = '../data/images'
-IMAGE_OUT_DIR = '../data/masked_images'
+MASK_DIR  = '..\\data\\masks'
+IMAGE_DIR = '..\\data\\images'
+IMAGE_OUT_DIR = '..\\data\\masked_images'
 
 if not os.path.exists(IMAGE_OUT_DIR):
     os.mkdir(IMAGE_OUT_DIR)
 
 def image_mask_check(image_path_list, mask_path_list):
     for image_path, mask_path in zip(image_path_list, mask_path_list):
-        image_name = image_path.split('/')[-1].split('.')[0]
-        mask_name  = mask_path.split('/')[-1].split('.')[0]
+        image_name = image_path.split('\\')[-1].split('.')[0]
+        mask_name  = mask_path.split('\\')[-1].split('.')[0]
         assert image_name == mask_name, "Image and mask name does not match {} - {}".format(image_name, mask_name)
 
 def write_mask_on_image():
